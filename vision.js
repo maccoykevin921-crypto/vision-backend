@@ -1,38 +1,68 @@
-// Vision® AI Maintenance & Monitoring Core
 import express from "express";
-import fs from "fs";
+import fetch from "node-fetch";
 
 const app = express();
 app.use(express.json());
 
-const logFile = "./vision_log.txt";
+// Load environment variables
+const {
+  PORT = 9000,
+  NODE_ENV,
+  VISION_NAME,
+  VISION_MODEL,
+  VISION_PROXY_URL,
+  SYSTEM_CORE,
+  ADMIN_EMAIL,
+  SECURITY_KEY,
+  AI_MODE,
+  LOG_LEVEL
+} = process.env;
 
-// 🛰️ Receive and log scan requests from VinoAuto frontend
-app.post("/vision/scan", (req, res) => {
-  const entry = {
-    time: new Date().toISOString(),
-    system: req.body.system || "unknown",
-    status: "Vision® Active",
-    client: req.headers["user-agent"]
-  };
-  fs.appendFileSync(logFile, JSON.stringify(entry) + "\n");
-
+// Health check route
+app.get("/", (_req, res) => {
   res.json({
-    status: "Vision® Active",
-    message: "System running normally",
-    timestamp: entry.time
+    system: VISION_NAME,
+    model: VISION_MODEL,
+    core: SYSTEM_CORE,
+    mode: AI_MODE,
+    status: "Vision® System active ✅",
+    environment: NODE_ENV,
   });
 });
 
-// 🧠 Optional: Vision® self-diagnostic route
-app.get("/vision/status", (req, res) => {
+// Secure handshake with vino-vin-proxy
+app.get("/sync", async (_req, res) => {
+  try {
+    const response = await fetch(`${VISION_PROXY_URL}/`, {
+      headers: { "x-security-key": SECURITY_KEY },
+    });
+
+    const proxyStatus = await response.json();
+    res.json({
+      message: "Vision® handshake completed 🤝",
+      connectedTo: VISION_PROXY_URL,
+      proxyResponse: proxyStatus,
+    });
+  } catch (err) {
+    console.error("Handshake error:", err.message);
+    res.status(500).json({ error: "Failed to connect to vino-vin-proxy" });
+  }
+});
+
+// Auto diagnostic self-check
+app.get("/diagnostics", (_req, res) => {
   res.json({
-    system: "Vino Auto BenchLab",
-    status: "✅ Online",
-    lastCheck: new Date().toISOString()
+    system: VISION_NAME,
+    version: VISION_MODEL,
+    security: SECURITY_KEY ? "Key Active 🔐" : "Missing ❌",
+    ai_mode: AI_MODE,
+    log_level: LOG_LEVEL,
+    admin_contact: ADMIN_EMAIL,
   });
 });
 
-// 🚀 Start Vision® server
-const PORT = process.env.PORT || 9000;
-app.listen(PORT, () => console.log(`🛰️ Vision® AI running on port ${PORT}`));
+// Start Vision system
+app.listen(PORT, () => {
+  console.log(`🚀 Vision® system running on port ${PORT} in ${NODE_ENV} mode.`);
+  console.log(`🔗 Connected to: ${VISION_PROXY_URL}`);
+});
