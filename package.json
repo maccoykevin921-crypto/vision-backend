@@ -1,0 +1,16 @@
+{
+  "name": "vision-backend",
+  "version": "1.0.0",
+  "description": "Vision® AI system monitor and diagnostic backend for Control.INC® ecosystem",
+  "main": "vision.js",
+  "type": "module",
+  "scripts": {
+    "start": "node vision.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
