@@ -1,23 +1,18 @@
 {
-  "name": "vision-ai-system",
-  "version": "1.0.0",
-  "description": "Vision® AI System - Control.INC® Intelligent Diagnostic & Monitoring Backend",
+  "name": "vision-backend",
+  "version": "1.0.1",
+  "description": "Vision® Notification & AI Backend",
   "main": "vision.js",
   "type": "module",
   "scripts": {
-    "start": "node vision.js",
-    "dev": "nodemon vision.js"
+    "start": "node vision.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "node-fetch": "^3.3.2"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
+    "express": "^4.19.2",
+    "node-fetch": "^3.3.2",
+    "nodemailer": "^6.9.9"
   },
   "engines": {
-    "node": ">=18.0.0"
-  },
-  "author": "Control.INC®",
-  "license": "ISC"
+    "node": "18.x"
+  }
 }
