@@ -2,67 +2,41 @@ import express from "express";
 import fetch from "node-fetch";
 
 const app = express();
+const PORT = process.env.PORT || 9000;
+
 app.use(express.json());
 
-// Load environment variables
-const {
-  PORT = 9000,
-  NODE_ENV,
-  VISION_NAME,
-  VISION_MODEL,
-  VISION_PROXY_URL,
-  SYSTEM_CORE,
-  ADMIN_EMAIL,
-  SECURITY_KEY,
-  AI_MODE,
-  LOG_LEVEL
-} = process.env;
-
-// Health check route
+// Health Check
 app.get("/", (_req, res) => {
-  res.json({
-    system: VISION_NAME,
-    model: VISION_MODEL,
-    core: SYSTEM_CORE,
-    mode: AI_MODE,
-    status: "Vision® System active ✅",
-    environment: NODE_ENV,
-  });
+  res.json({ message: "Vision® backend online 🚀" });
 });
 
-// Secure handshake with vino-vin-proxy
+// Sync Check Route
 app.get("/sync", async (_req, res) => {
   try {
-    const response = await fetch(`${VISION_PROXY_URL}/`, {
-      headers: { "x-security-key": SECURITY_KEY },
-    });
+    const proxyUrl = process.env.VISION_PROXY_URL || "https://vino-vin-proxy.onrender.com";
 
-    const proxyStatus = await response.json();
+    const response = await fetch(proxyUrl);
+    const proxyStatus = response.ok ? "Connected" : "Error";
+
     res.json({
       message: "Vision® handshake completed 🤝",
-      connectedTo: VISION_PROXY_URL,
-      proxyResponse: proxyStatus,
+      connectedTo: proxyUrl,
+      status: proxyStatus,
+      system: "Vision AI Core",
+      mode: process.env.NODE_ENV || "development",
+      version: "1.0.0"
     });
   } catch (err) {
-    console.error("Handshake error:", err.message);
-    res.status(500).json({ error: "Failed to connect to vino-vin-proxy" });
+    console.error("Sync Error:", err.message);
+    res.status(500).json({
+      error: "Failed to reach VIN Proxy",
+      details: err.message
+    });
   }
 });
 
-// Auto diagnostic self-check
-app.get("/diagnostics", (_req, res) => {
-  res.json({
-    system: VISION_NAME,
-    version: VISION_MODEL,
-    security: SECURITY_KEY ? "Key Active 🔐" : "Missing ❌",
-    ai_mode: AI_MODE,
-    log_level: LOG_LEVEL,
-    admin_contact: ADMIN_EMAIL,
-  });
-});
-
-// Start Vision system
+// Start Server
 app.listen(PORT, () => {
-  console.log(`🚀 Vision® system running on port ${PORT} in ${NODE_ENV} mode.`);
-  console.log(`🔗 Connected to: ${VISION_PROXY_URL}`);
+  console.log(`🛰️ Vision® system running on port ${PORT}`);
 });
