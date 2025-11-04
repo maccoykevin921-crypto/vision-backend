@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 const PORT = process.env.PORT || 9000;
 
-// 🌐 Vision® dynamic environment variables
+// 🌍 Vision® dynamic environment variables
 const adminEmails = process.env.ADMIN_EMAILS
   ? process.env.ADMIN_EMAILS.split(",").map((e) => e.trim())
   : [];
@@ -24,10 +24,10 @@ const transporter = nodemailer.createTransport({
 // ✅ Health check route
 app.get("/", (_req, res) => {
   res.json({
-    message: "🛰️ Vision® Notification Core active.",
+    message: "🛰️ Vision® Notification Core active and stable.",
     system: "Vision AI Backend",
     mode: process.env.NODE_ENV || "production",
-    proxy: process.env.VISION_PROXY_URL || "Not Set",
+    proxy: process.env.VISION_PROXY_URL || "Not Connected",
     time: new Date().toISOString(),
   });
 });
@@ -48,6 +48,7 @@ app.get("/sync", async (_req, res) => {
       version: "1.0.2",
     });
   } catch (err) {
+    console.error("Sync Error:", err.message);
     res.status(500).json({
       error: "Failed to reach VIN Proxy",
       details: err.message,
@@ -55,7 +56,7 @@ app.get("/sync", async (_req, res) => {
   }
 });
 
-// 📩 Admin email & WhatsApp notifier
+// 📩 Notify (Email + WhatsApp)
 app.post("/notify", async (req, res) => {
   try {
     const { subject, text } = req.body;
@@ -73,38 +74,37 @@ app.post("/notify", async (req, res) => {
     };
 
     await transporter.sendMail(mailOptions);
-
     console.log("✅ Notification email sent to admins.");
 
-    // WhatsApp alert trigger
-    const whatsappMessage = `⚠️ Vision® Alert: ${subject}\n${text}`;
+    // WhatsApp alert
+    const whatsappMessage = `⚠️ Vision® Alert:\n${subject}\n${text}`;
     await fetch(
       `https://api.callmebot.com/whatsapp.php?phone=+27672514218&text=${encodeURIComponent(
         whatsappMessage
       )}&apikey=813627`
     );
+    console.log("📱 WhatsApp alert sent.");
 
-    console.log("📱 WhatsApp alert sent successfully.");
-    res.json({ success: true, sent: adminEmails, mode: "production" });
+    res.json({ success: true, sent: adminEmails });
   } catch (err) {
     console.error("Notify Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// 🚨 Auto shutdown watcher
+// 🚨 Auto shutdown alert
 process.on("SIGTERM", async () => {
-  const msg = "🚨 Vision® backend shutting down.";
+  const msg = "🚨 Vision® backend shutting down unexpectedly!";
   await fetch(
     `https://api.callmebot.com/whatsapp.php?phone=+27672514218&text=${encodeURIComponent(
       msg
     )}&apikey=813627`
   );
-  console.log("⚠️ Vision® Shutdown Notice sent.");
+  console.log("⚠️ Vision® Shutdown Alert sent to WhatsApp.");
   process.exit(0);
 });
 
-// 🚀 Start server
+// 🚀 Start Server
 app.listen(PORT, () => {
   console.log(`🛰️ Vision® Notification System running on port ${PORT}`);
 });
