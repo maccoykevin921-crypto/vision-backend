@@ -1,5 +1,6 @@
 import express from "express";
 import nodemailer from "nodemailer";
+import fetch from "node-fetch";
 
 const router = express.Router();
 
@@ -18,39 +19,81 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ✅ POST /notify — send Vision® system alert
+// ✅ POST /notify — send Vision® system alerts
 router.post("/", async (req, res) => {
   try {
     const { subject, text } = req.body;
 
     if (!subject || !text) {
-      return res.status(400).json({ error: "Subject and text are required." });
+      return res.status(400).json({ error: "Subject and text are required" });
     }
 
     if (adminEmails.length === 0) {
-      return res
-        .status(500)
-        .json({ error: "No admin emails configured in environment." });
+      return res.status(500).json({ error: "No admin emails configured" });
     }
 
-    // Send Vision® alert email
-    const info = await transporter.sendMail({
+    const mailOptions = {
       from: process.env.NOTIFY_FROM || "Vision System <no-reply@vinoautomechanic.com>",
       to: adminEmails,
-      subject: subject,
-      text: text,
-    });
+      subject,
+      text,
+    };
 
-    console.log(`✅ Vision® Notification sent: ${info.messageId}`);
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Vision® Notification Sent → ${adminEmails.join(", ")}`);
 
-    return res.json({
-      message: "✅ Notification sent successfully.",
-      messageId: info.messageId,
+    // Also send WhatsApp alert if it's an emergency
+    if (subject.toLowerCase().includes("shutdown") || subject.toLowerCase().includes("error")) {
+      await sendWhatsAppAlert(`⚠️ ${subject}\n\n${text}`);
+      console.log("📲 WhatsApp alert sent successfully.");
+    }
+
+    res.json({ success: true, message: "Vision® notification sent successfully" });
+  } catch (err) {
+    console.error("❌ Vision® Notification Error:", err.message);
+    res.status(500).json({
+      success: false,
+      error: "Failed to send Vision® notification",
+      details: err.message,
     });
-  } catch (error) {
-    console.error("❌ Vision Notify Error:", error);
-    return res.status(500).json({ error: "Failed to send notification", details: error.message });
   }
 });
+
+// 🔁 Vision® Heartbeat (system status)
+router.get("/heartbeat", (req, res) => {
+  const status = {
+    system: "Vision® Notification Core",
+    uptime: process.uptime(),
+    mode: process.env.NODE_ENV || "development",
+    time: new Date().toISOString(),
+    connectedAdmins: adminEmails,
+  };
+  res.json(status);
+});
+
+// 📲 WhatsApp API Integration (Twilio / Meta API)
+async function sendWhatsAppAlert(message) {
+  try {
+    const whatsappNumber = "+27672514218";
+    const apiUrl = process.env.WHATSAPP_API_URL || "https://graph.facebook.com/v19.0/me/messages";
+    const token = process.env.WHATSAPP_TOKEN;
+
+    await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: whatsappNumber,
+        type: "text",
+        text: { body: message },
+      }),
+    });
+  } catch (err) {
+    console.error("❌ WhatsApp alert failed:", err.message);
+  }
+}
 
 export default router;
