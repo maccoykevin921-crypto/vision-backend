@@ -1,18 +1,24 @@
 {
-  "name": "vision-backend",
-  "version": "1.0.1",
-  "description": "Vision® Notification & AI Backend",
+  "name": "vision-ai-system",
+  "version": "1.0.2",
+  "description": "Vision® AI System – Control.INC® Notification Core for VinoAutoLab",
   "main": "vision.js",
   "type": "module",
   "scripts": {
-    "start": "node vision.js"
+    "start": "node vision.js",
+    "dev": "nodemon vision.js"
   },
   "dependencies": {
     "express": "^4.19.2",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.9"
   },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
   "engines": {
-    "node": "18.x"
-  }
+    "node": ">=18.0.0"
+  },
+  "author": "Control.INC®",
+  "license": "ISC"
 }
