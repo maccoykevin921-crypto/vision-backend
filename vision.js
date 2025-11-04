@@ -1,42 +1,56 @@
 import express from "express";
-import fetch from "node-fetch";
+import nodemailer from "nodemailer";
 
-const app = express();
-const PORT = process.env.PORT || 9000;
+const router = express.Router();
 
-app.use(express.json());
+// Vision® dynamic environment variables
+const adminEmails = process.env.ADMIN_EMAILS
+  ? process.env.ADMIN_EMAILS.split(",").map((e) => e.trim())
+  : [];
 
-// Health Check
-app.get("/", (_req, res) => {
-  res.json({ message: "Vision® backend online 🚀" });
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT || 587,
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
 });
 
-// Sync Check Route
-app.get("/sync", async (_req, res) => {
+// ✅ POST /notify — send Vision® system alert
+router.post("/", async (req, res) => {
   try {
-    const proxyUrl = process.env.VISION_PROXY_URL || "https://vino-vin-proxy.onrender.com";
+    const { subject, text } = req.body;
 
-    const response = await fetch(proxyUrl);
-    const proxyStatus = response.ok ? "Connected" : "Error";
+    if (!subject || !text) {
+      return res.status(400).json({ error: "Subject and text are required." });
+    }
 
-    res.json({
-      message: "Vision® handshake completed 🤝",
-      connectedTo: proxyUrl,
-      status: proxyStatus,
-      system: "Vision AI Core",
-      mode: process.env.NODE_ENV || "development",
-      version: "1.0.0"
+    if (adminEmails.length === 0) {
+      return res
+        .status(500)
+        .json({ error: "No admin emails configured in environment." });
+    }
+
+    // Send Vision® alert email
+    const info = await transporter.sendMail({
+      from: process.env.NOTIFY_FROM || "Vision System <no-reply@vinoautomechanic.com>",
+      to: adminEmails,
+      subject: subject,
+      text: text,
     });
-  } catch (err) {
-    console.error("Sync Error:", err.message);
-    res.status(500).json({
-      error: "Failed to reach VIN Proxy",
-      details: err.message
+
+    console.log(`✅ Vision® Notification sent: ${info.messageId}`);
+
+    return res.json({
+      message: "✅ Notification sent successfully.",
+      messageId: info.messageId,
     });
+  } catch (error) {
+    console.error("❌ Vision Notify Error:", error);
+    return res.status(500).json({ error: "Failed to send notification", details: error.message });
   }
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`🛰️ Vision® system running on port ${PORT}`);
-});
+export default router;
